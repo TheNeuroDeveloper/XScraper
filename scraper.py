@@ -4,6 +4,7 @@ import os
 import argparse
 from dotenv import load_dotenv
 import logging
+import sys
 
 # Set up logging
 logging.basicConfig(
@@ -248,24 +249,118 @@ def fetch_tweets(username, count=10):
         logger.error(f"Error fetching tweets: {str(e)}")
         return []
 
+def fetch_home_timeline(count=10):
+    """Fetch tweets from the user's home timeline."""
+    try:
+        # Get the hash for HomeLatestTimeline operation
+        hash_value = GRAPHQL_HASHES.get('HomeLatestTimeline')
+        if not hash_value:
+            raise ValueError("HomeLatestTimeline hash not found. Please run get_hashes.py first.")
+
+        url = f"https://twitter.com/i/api/graphql/{hash_value}/HomeLatestTimeline"
+        
+        variables = {
+            "count": count,
+            "includePromotedContent": False,
+            "latestControlAvailable": True,
+            "requestContext": "launch",
+            "withCommunity": True,
+            "seenTweetIds": [],
+            "withQuickPromoteEligibilityTweetFields": True,
+            "withSuperFollowsUserFields": True,
+            "withDownvotePerspective": False,
+            "withReactionsMetadata": False,
+            "withReactionsPerspective": False,
+            "withSuperFollowsTweetFields": True,
+            "withVoice": True,
+            "withV2Timeline": True
+        }
+        
+        params = {
+            "variables": json.dumps(variables),
+            "features": json.dumps(FEATURES)
+        }
+
+        response = requests.get(url, headers=get_headers(), params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        timeline = data.get('data', {}).get('home', {}).get('home_timeline_urt', {})
+        
+        if not timeline:
+            raise ValueError("No timeline found in response")
+            
+        instructions = timeline.get('instructions', [])
+        if not instructions:
+            raise ValueError("No instructions found in timeline")
+            
+        tweets = []
+        for instruction in instructions:
+            if instruction.get('type') == 'TimelineAddEntries':
+                entries = instruction.get('entries', [])
+                for entry in entries:
+                    if entry.get('content', {}).get('itemContent', {}).get('itemType') == 'TimelineTweet':
+                        tweet_data = entry.get('content', {}).get('itemContent', {}).get('tweet_results', {}).get('result', {})
+                        if tweet_data and 'legacy' in tweet_data:
+                            tweet = {
+                                'id': tweet_data.get('rest_id'),
+                                'text': tweet_data['legacy'].get('full_text', ''),
+                                'created_at': tweet_data['legacy'].get('created_at'),
+                                'retweet_count': tweet_data['legacy'].get('retweet_count', 0),
+                                'favorite_count': tweet_data['legacy'].get('favorite_count', 0),
+                                'user': {
+                                    'id': tweet_data.get('core', {}).get('user_results', {}).get('result', {}).get('rest_id'),
+                                    'name': tweet_data.get('core', {}).get('user_results', {}).get('result', {}).get('legacy', {}).get('name'),
+                                    'screen_name': tweet_data.get('core', {}).get('user_results', {}).get('result', {}).get('legacy', {}).get('screen_name')
+                                }
+                            }
+                            tweets.append(tweet)
+                            if len(tweets) >= count:
+                                break
+        
+        return tweets
+        
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching home timeline: {str(e)}")
+        raise
+
 def main():
     parser = argparse.ArgumentParser(description='Fetch tweets from a Twitter user')
-    parser.add_argument('username', help='Twitter username to fetch tweets from')
+    parser.add_argument('username', nargs='?', help='Twitter username to fetch tweets from')
     parser.add_argument('--count', type=int, default=10, help='Number of tweets to fetch (default: 10)')
+    parser.add_argument('--home', action='store_true', help='Fetch from home timeline instead of user timeline')
     args = parser.parse_args()
-    
-    if not AUTH_TOKEN or not CT0:
-        logger.error("X_AUTH_TOKEN and X_CT0 must be set in environment variables")
-        return
-        
-    tweets = fetch_tweets(args.username, args.count)
-    
-    if tweets:
-        # Save to JSON file
-        filename = f"{args.username}_tweets.json"
+
+    try:
+        if args.home:
+            tweets = fetch_home_timeline(args.count)
+            print(f"\nFetched {len(tweets)} tweets from your home timeline:")
+        elif args.username:
+            tweets = fetch_tweets(args.username, args.count)
+            print(f"\nFetched {len(tweets)} tweets from @{args.username}:")
+        else:
+            parser.print_help()
+            return
+
+        for tweet in tweets:
+            if args.home:
+                # For home timeline, show the user's handle
+                handle = tweet['user']['screen_name']
+                print(f"\n@{handle}:")
+                print(f"{tweet['text']}")
+            else:
+                # For user timeline, just show the tweet
+                print(f"\n{tweet['text']}")
+            
+        # Save to file
+        filename = f"home_timeline_tweets.json" if args.home else f"{args.username}_tweets.json"
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(tweets, f, ensure_ascii=False, indent=2)
-        print(f"\nSaved {len(tweets)} tweets to {filename}")
+            json.dump(tweets, f, indent=2, ensure_ascii=False)
+        print(f"\nTweets saved to {filename}")
+            
+    except Exception as e:
+        logging.error(f"Error: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

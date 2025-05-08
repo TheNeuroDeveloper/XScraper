@@ -5,6 +5,7 @@ A Python script to scrape tweets from X (formerly Twitter) using their web API. 
 ## Features
 
 - Fetch tweets from any public Twitter account
+- Get tweets from your home timeline
 - Get pinned tweets
 - Save tweets to JSON file
 - Configurable number of tweets to fetch
@@ -68,7 +69,9 @@ To get these tokens:
 python get_hashes.py
 ```
 
-2. Then fetch tweets:
+2. Then fetch tweets using one of these methods:
+
+### Fetch tweets from a specific user:
 ```bash
 python scraper.py username [--count NUMBER]
 ```
@@ -78,16 +81,29 @@ Example:
 python scraper.py elonmusk --count 5
 ```
 
-This will:
-- Fetch 5 tweets from @elonmusk
-- Display them in the console
-- Save them to `elonmusk_tweets.json`
+### Fetch tweets from your home timeline:
+```bash
+python scraper.py --home [--count NUMBER]
+```
+
+Example:
+```bash
+python scraper.py --home --count 10
+```
+
+The script will:
+- Fetch the specified number of tweets
+- Display them in the console (with usernames for home timeline tweets)
+- Save them to a JSON file:
+  - `username_tweets.json` for user timeline
+  - `home_timeline_tweets.json` for home timeline
 
 ## Notes
 
 - The script uses Twitter's web API, so it's subject to their rate limits
 - Make sure to keep your session tokens secure and never commit them to version control
 - The GraphQL hashes need to be updated periodically as Twitter updates their web client
+- Home timeline access requires valid authentication tokens
 
 ## License
 
