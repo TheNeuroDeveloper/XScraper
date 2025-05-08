@@ -36,10 +36,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file with your Twitter session cookies:
+4. Create a `.env` file with your Twitter session cookies and tokens:
 ```
+# Required for scraping tweets
 X_AUTH_TOKEN=your_auth_token_here
 X_CT0=your_ct0_here
+
+# Required for getting latest GraphQL hashes
+X_CSRF_TOKEN=your_csrf_token_here
+X_TWITTER_AUTH_TYPE=OAuth2Session
+X_TWITTER_CLIENT_LANGUAGE=en
+X_TWITTER_ACTIVE_USER=yes
 ```
 
 To get these tokens:
@@ -47,7 +54,12 @@ To get these tokens:
 2. Open Developer Tools (F12)
 3. Go to Application tab
 4. Look for Cookies under Storage
-5. Find and copy the `auth_token` and `ct0` values
+5. Find and copy the following values:
+   - `auth_token` → X_AUTH_TOKEN
+   - `ct0` → X_CT0 and X_CSRF_TOKEN
+   - `twid` → X_TWITTER_AUTH_TYPE
+   - `lang` → X_TWITTER_CLIENT_LANGUAGE
+   - `active_user` → X_TWITTER_ACTIVE_USER
 
 ## Usage
 
