@@ -1,7 +1,3 @@
-"""
-Analyze price movements of cryptocurrencies mentioned in tweets.
-"""
-
 import requests
 import json
 import os
@@ -21,8 +17,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # === CONFIGURATION ===
-USERNAME = "etherwizz_"  # Updated to new KOL
-TWEET_COUNT = 100  # Number of tweets to fetch
+USERNAME = "elonmusk"  # Can be changed as needed
 AUTH_TOKEN = os.getenv('X_AUTH_TOKEN')
 CT0 = os.getenv('X_CT0')
 BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
